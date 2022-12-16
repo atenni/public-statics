@@ -13,7 +13,7 @@ on:
 permissions:
   contents: read
   pages: write
-  id-token: write
+  id-token: write # https://stackoverflow.com/a/72183279/2444267
 
 # Allow one concurrent deployment
 concurrency:
@@ -30,13 +30,35 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Insert README.md into index.html
+        run: |-
+          deno run \
+            --allow-read \
+            --allow-write \
+            .github/my-scripts/insert-readme-into-index.ts
+
+      - name: Commit and push if index.html has changed
+        run: |-
+          git add -A
+          timestamp=$(date -Iseconds -u)
+          git commit -m "ci: generate index ${timestamp}" || exit 0
+          git push
+
       - name: Setup Pages
         uses: actions/configure-pages@v2
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
           # Upload entire repository
-          path: '.'
+          path: "."
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v1
